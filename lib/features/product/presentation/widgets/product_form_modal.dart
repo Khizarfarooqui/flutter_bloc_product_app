@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/di/injection.dart';
 import '../../models/product.dart';
 import '../blocs/product_cubit.dart';
 import '../blocs/product_state.dart';
@@ -23,8 +24,8 @@ class ProductFormModal extends StatelessWidget {
     return showDialog<void>(
       context: context,
       barrierDismissible: false,
-      builder: (context) => BlocProvider(
-        create: (_) => ProductFormCubit(),
+      builder: (context) => BlocProvider<ProductFormCubit>(
+        create: (_) => sl<ProductFormCubit>(),
         child: ProductFormModal(product: product, onSaved: onSaved),
       ),
     );
@@ -35,21 +36,25 @@ class ProductFormModal extends StatelessWidget {
     final isEdit = product != null;
     return BlocConsumer<ProductFormCubit, ProductFormState>(
       listener: (context, state) {
-        if (state.status == ProductFormStatus.success) {
-          Navigator.of(context).pop();
-          onSaved();
-        }
-        if (state.status == ProductFormStatus.failure &&
-            state.errorMessage != null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.errorMessage!)),
-          );
+        switch (state) {
+          case ProductFormSuccess():
+            Navigator.of(context).pop();
+            onSaved();
+            break;
+          case ProductFormFailure(:final message):
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(message)),
+            );
+            break;
+          default:
+            break;
         }
       },
       builder: (context, state) {
+        final isLoading = state is ProductFormLoading;
         return _ProductFormDialog(
           product: product,
-          isLoading: state.status == ProductFormStatus.loading,
+          isLoading: isLoading,
           onSave: (p) {
             if (isEdit) {
               context.read<ProductFormCubit>().updateProduct(p);

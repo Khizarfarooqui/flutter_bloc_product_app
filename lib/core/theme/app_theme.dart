@@ -26,8 +26,8 @@ class AppTheme {
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       ),
       dataTableTheme: DataTableThemeData(
-        headingRowColor: WidgetStateProperty.resolveWith((_) => Colors.transparent),
-        dataRowColor: WidgetStateProperty.resolveWith((_) => Colors.transparent),
+        headingRowColor: MaterialStateProperty.resolveWith((_) => Colors.transparent),
+        dataRowColor: MaterialStateProperty.resolveWith((_) => Colors.transparent),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: Colors.grey.shade200),
@@ -62,8 +62,8 @@ class AppTheme {
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       ),
       dataTableTheme: DataTableThemeData(
-        headingRowColor: WidgetStateProperty.resolveWith((_) => Colors.transparent),
-        dataRowColor: WidgetStateProperty.resolveWith((_) => Colors.transparent),
+        headingRowColor: MaterialStateProperty.resolveWith((_) => Colors.transparent),
+        dataRowColor: MaterialStateProperty.resolveWith((_) => Colors.transparent),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: Colors.grey.shade700),

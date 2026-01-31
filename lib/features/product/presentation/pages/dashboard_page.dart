@@ -1,10 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/di/injection.dart';
+import '../blocs/dashboard_cubit.dart';
 import '../widgets/app_bar_with_search.dart';
 
 class DashboardPage extends StatelessWidget {
   const DashboardPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocProvider<DashboardCubit>(
+      create: (_) => sl<DashboardCubit>(),
+      child: const _DashboardContent(),
+    );
+  }
+}
+
+class _DashboardContent extends StatelessWidget {
+  const _DashboardContent();
 
   @override
   Widget build(BuildContext context) {

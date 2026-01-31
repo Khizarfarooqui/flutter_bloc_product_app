@@ -17,7 +17,10 @@ abstract class ProductRepository {
 }
 
 class ProductRepositoryImpl implements ProductRepository {
-  final ProductRemoteDataSource _dataSource = ProductRemoteDataSourceImpl();
+  ProductRepositoryImpl({required ProductRemoteDataSource dataSource})
+      : _dataSource = dataSource;
+
+  final ProductRemoteDataSource _dataSource;
 
   @override
   Future<List<Product>> getProducts({int skip = 0, int limit = 30}) =>

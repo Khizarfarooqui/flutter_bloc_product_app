@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/di/injection.dart';
 import '../../models/product.dart';
 import '../blocs/product_cubit.dart';
 import '../blocs/product_state.dart';
@@ -17,8 +18,8 @@ class ProductDetailsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => ProductDetailCubit()..loadProduct(productId),
+    return BlocProvider<ProductDetailCubit>(
+      create: (_) => sl<ProductDetailCubit>()..loadProduct(productId),
       child: _ProductDetailsContent(productId: productId),
     );
   }
@@ -43,10 +44,10 @@ class _ProductDetailsContent extends StatelessWidget {
         actions: [
           BlocBuilder<ProductDetailCubit, ProductDetailState>(
             builder: (context, state) {
-              if (state.product == null) return const SizedBox.shrink();
+              if (state is! ProductDetailSuccess) return const SizedBox.shrink();
               return IconButton(
                 icon: const Icon(Icons.edit_rounded),
-                onPressed: () => _openEditModal(context, state.product!),
+                onPressed: () => _openEditModal(context, state.product),
                 tooltip: 'Edit',
               );
             },
@@ -55,30 +56,27 @@ class _ProductDetailsContent extends StatelessWidget {
       ),
       body: BlocBuilder<ProductDetailCubit, ProductDetailState>(
         builder: (context, state) {
-          if (state.loading) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (state.errorMessage != null) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(state.errorMessage!),
-                  const SizedBox(height: 16),
-                  FilledButton(
-                    onPressed: () =>
-                        context.read<ProductDetailCubit>().loadProduct(productId),
-                    child: const Text('Retry'),
-                  ),
-                ],
-              ),
-            );
-          }
-          final product = state.product;
-          if (product == null) {
-            return const Center(child: Text('Product not found'));
-          }
-          return SingleChildScrollView(
+          switch (state) {
+            case ProductDetailInitial():
+            case ProductDetailLoading():
+              return const Center(child: CircularProgressIndicator());
+            case ProductDetailFailure(:final message):
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(message),
+                    const SizedBox(height: 16),
+                    FilledButton(
+                      onPressed: () =>
+                          context.read<ProductDetailCubit>().loadProduct(productId),
+                      child: const Text('Retry'),
+                    ),
+                  ],
+                ),
+              );
+            case ProductDetailSuccess(:final product):
+              return SingleChildScrollView(
             padding: const EdgeInsets.all(24),
             child: LayoutBuilder(
               builder: (context, constraints) {
@@ -128,6 +126,7 @@ class _ProductDetailsContent extends StatelessWidget {
               },
             ),
           );
+          }
         },
       ),
     );

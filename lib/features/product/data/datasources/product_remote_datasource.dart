@@ -1,6 +1,4 @@
-import 'dart:convert';
-
-import 'package:http/http.dart' as http;
+import 'package:dio/dio.dart';
 
 import '../../models/product.dart';
 
@@ -15,98 +13,71 @@ abstract class ProductRemoteDataSource {
 }
 
 class ProductRemoteDataSourceImpl implements ProductRemoteDataSource {
-  static const String _baseUrl = 'https://dummyjson.com/products';
+  ProductRemoteDataSourceImpl({required Dio dio}) : _dio = dio;
 
-  final http.Client client = http.Client();
+  final Dio _dio;
+  static const String _path = '/products';
 
   @override
   Future<List<Product>> fetchProducts({int skip = 0, int limit = 30}) async {
-    final uri = Uri.parse('$_baseUrl?skip=$skip&limit=$limit');
-    final response = await client.get(uri);
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body) as Map<String, dynamic>;
-      final list = data['products'] as List<dynamic>? ?? [];
-      return list.map((e) => Product.fromJson(e as Map<String, dynamic>)).toList();
-    }
-    throw Exception('Failed to load products: ${response.statusCode}');
+    final response = await _dio.get(
+      _path,
+      queryParameters: {'skip': skip, 'limit': limit},
+    );
+    final data = response.data as Map<String, dynamic>;
+    final list = data['products'] as List<dynamic>? ?? [];
+    return list.map((e) => Product.fromJson(e as Map<String, dynamic>)).toList();
   }
 
   @override
   Future<Product?> fetchProductById(int id) async {
-    final uri = Uri.parse('$_baseUrl/$id');
-    final response = await client.get(uri);
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body) as Map<String, dynamic>;
+    try {
+      final response = await _dio.get('$_path/$id');
+      final data = response.data as Map<String, dynamic>;
       return Product.fromJson(data);
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404) return null;
+      rethrow;
     }
-    if (response.statusCode == 404) return null;
-    throw Exception('Failed to load product: ${response.statusCode}');
   }
 
   @override
   Future<List<Product>> searchProducts(String query) async {
     if (query.trim().isEmpty) return fetchProducts();
-    final uri = Uri.parse('$_baseUrl/search?q=${Uri.encodeComponent(query)}');
-    final response = await client.get(uri);
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body) as Map<String, dynamic>;
-      final list = data['products'] as List<dynamic>? ?? [];
-      return list.map((e) => Product.fromJson(e as Map<String, dynamic>)).toList();
-    }
-    throw Exception('Failed to search: ${response.statusCode}');
+    final response = await _dio.get(
+      '$_path/search',
+      queryParameters: {'q': query},
+    );
+    final data = response.data as Map<String, dynamic>;
+    final list = data['products'] as List<dynamic>? ?? [];
+    return list.map((e) => Product.fromJson(e as Map<String, dynamic>)).toList();
   }
 
   @override
   Future<List<Product>> filterByCategory(String category) async {
     if (category.isEmpty) return fetchProducts();
-    final uri = Uri.parse('$_baseUrl/category/${Uri.encodeComponent(category)}');
-    final response = await client.get(uri);
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body) as Map<String, dynamic>;
-      final list = data['products'] as List<dynamic>? ?? [];
-      return list.map((e) => Product.fromJson(e as Map<String, dynamic>)).toList();
-    }
-    throw Exception('Failed to filter: ${response.statusCode}');
+    final response = await _dio.get('$_path/category/$category');
+    final data = response.data as Map<String, dynamic>;
+    final list = data['products'] as List<dynamic>? ?? [];
+    return list.map((e) => Product.fromJson(e as Map<String, dynamic>)).toList();
   }
 
   @override
   Future<Product> addProduct(Product product) async {
-    final uri = Uri.parse('$_baseUrl/add');
-    final body = json.encode(product.toJson());
-    final response = await client.post(
-      uri,
-      headers: {'Content-Type': 'application/json'},
-      body: body,
-    );
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      final data = json.decode(response.body) as Map<String, dynamic>;
-      return Product.fromJson(data);
-    }
-    throw Exception('Failed to add product: ${response.statusCode}');
+    final response = await _dio.post(_path, data: product.toJson());
+    final data = response.data as Map<String, dynamic>;
+    return Product.fromJson(data);
   }
 
   @override
   Future<Product> updateProduct(Product product) async {
-    final uri = Uri.parse('$_baseUrl/${product.id}');
-    final body = json.encode(product.toJson());
-    final response = await client.put(
-      uri,
-      headers: {'Content-Type': 'application/json'},
-      body: body,
-    );
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body) as Map<String, dynamic>;
-      return Product.fromJson(data);
-    }
-    throw Exception('Failed to update product: ${response.statusCode}');
+    final response = await _dio.put('$_path/${product.id}', data: product.toJson());
+    final data = response.data as Map<String, dynamic>;
+    return Product.fromJson(data);
   }
 
   @override
   Future<void> deleteProduct(int id) async {
-    final uri = Uri.parse('$_baseUrl/$id');
-    final response = await client.delete(uri);
-    if (response.statusCode != 200 && response.statusCode != 204) {
-      throw Exception('Failed to delete product: ${response.statusCode}');
-    }
+    await _dio.delete('$_path/$id');
   }
 }

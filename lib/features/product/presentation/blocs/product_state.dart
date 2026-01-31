@@ -2,61 +2,54 @@ import 'package:equatable/equatable.dart';
 
 import '../../models/product.dart';
 
-enum ProductListStatus { initial, loading, success, failure }
-enum ProductFormStatus { initial, loading, success, failure }
-
 enum ProductSortColumn { id, name, category, price, stock }
 
-class ProductListState extends Equatable {
-  final ProductListStatus status;
-  final List<Product> products;
-  final String? errorMessage;
+sealed class ProductListState extends Equatable {
+  const ProductListState();
+
+  @override
+  List<Object?> get props => [];
+}
+
+final class ProductListInitial extends ProductListState {
+  const ProductListInitial();
+}
+
+final class ProductListLoading extends ProductListState {
   final String searchQuery;
   final String? categoryFilter;
   final bool inStockOnly;
-  final int page;
-  final int total;
   final ProductSortColumn? sortColumn;
   final bool sortAscending;
 
-  const ProductListState({
-    this.status = ProductListStatus.initial,
-    this.products = const [],
-    this.errorMessage,
+  const ProductListLoading({
     this.searchQuery = '',
     this.categoryFilter,
     this.inStockOnly = false,
-    this.page = 0,
-    this.total = 0,
     this.sortColumn,
     this.sortAscending = true,
   });
 
-  ProductListState copyWith({
-    ProductListStatus? status,
-    List<Product>? products,
-    String? errorMessage,
-    String? searchQuery,
-    String? categoryFilter,
-    bool? inStockOnly,
-    int? page,
-    int? total,
-    ProductSortColumn? sortColumn,
-    bool? sortAscending,
-  }) {
-    return ProductListState(
-      status: status ?? this.status,
-      products: products ?? this.products,
-      errorMessage: errorMessage,
-      searchQuery: searchQuery ?? this.searchQuery,
-      categoryFilter: categoryFilter,
-      inStockOnly: inStockOnly ?? this.inStockOnly,
-      page: page ?? this.page,
-      total: total ?? this.total,
-      sortColumn: sortColumn ?? this.sortColumn,
-      sortAscending: sortAscending ?? this.sortAscending,
-    );
-  }
+  @override
+  List<Object?> get props => [searchQuery, categoryFilter, inStockOnly, sortColumn, sortAscending];
+}
+
+final class ProductListSuccess extends ProductListState {
+  final List<Product> products;
+  final String searchQuery;
+  final String? categoryFilter;
+  final bool inStockOnly;
+  final ProductSortColumn? sortColumn;
+  final bool sortAscending;
+
+  const ProductListSuccess({
+    required this.products,
+    this.searchQuery = '',
+    this.categoryFilter,
+    this.inStockOnly = false,
+    this.sortColumn,
+    this.sortAscending = true,
+  });
 
   List<Product> get sortedProducts {
     if (sortColumn == null) return List.from(products);
@@ -87,59 +80,131 @@ class ProductListState extends Equatable {
 
   @override
   List<Object?> get props =>
-      [status, products, errorMessage, searchQuery, categoryFilter, inStockOnly, page, total, sortColumn, sortAscending];
+      [products, searchQuery, categoryFilter, inStockOnly, sortColumn, sortAscending];
 }
 
-class ProductDetailState extends Equatable {
-  final Product? product;
-  final bool loading;
-  final String? errorMessage;
+final class ProductListFailure extends ProductListState {
+  final String message;
+  final String searchQuery;
+  final String? categoryFilter;
+  final bool inStockOnly;
 
-  const ProductDetailState({
-    this.product,
-    this.loading = false,
-    this.errorMessage,
+  const ProductListFailure({
+    required this.message,
+    this.searchQuery = '',
+    this.categoryFilter,
+    this.inStockOnly = false,
   });
 
-  ProductDetailState copyWith({
-    Product? product,
-    bool? loading,
-    String? errorMessage,
-  }) {
-    return ProductDetailState(
-      product: product ?? this.product,
-      loading: loading ?? this.loading,
-      errorMessage: errorMessage,
-    );
-  }
-
   @override
-  List<Object?> get props => [product, loading, errorMessage];
+  List<Object?> get props => [message, searchQuery, categoryFilter, inStockOnly];
 }
 
-class ProductFormState extends Equatable {
-  final ProductFormStatus status;
-  final String? errorMessage;
-  final Product? savedProduct;
-
-  const ProductFormState({
-    this.status = ProductFormStatus.initial,
-    this.errorMessage,
-    this.savedProduct,
-  });
-
-  ProductFormState copyWith({
-    ProductFormStatus? status,
-    String? errorMessage,
-    Product? savedProduct,
-  }) {
-    return ProductFormState(
-      status: status ?? this.status,
-      errorMessage: errorMessage,
-      savedProduct: savedProduct ?? this.savedProduct,
-    );
-  }
+sealed class ProductDetailState extends Equatable {
+  const ProductDetailState();
 
   @override
-  List<Object?> get props => [status, errorMessage, savedProduct];
+  List<Object?> get props => [];
+}
+
+final class ProductDetailInitial extends ProductDetailState {
+  const ProductDetailInitial();
+}
+
+final class ProductDetailLoading extends ProductDetailState {
+  const ProductDetailLoading();
+}
+
+final class ProductDetailSuccess extends ProductDetailState {
+  final Product product;
+
+  const ProductDetailSuccess(this.product);
+
+  @override
+  List<Object?> get props => [product];
+}
+
+final class ProductDetailFailure extends ProductDetailState {
+  final String message;
+
+  const ProductDetailFailure(this.message);
+
+  @override
+  List<Object?> get props => [message];
+}
+
+sealed class ProductFormState extends Equatable {
+  const ProductFormState();
+
+  @override
+  List<Object?> get props => [];
+}
+
+final class ProductFormInitial extends ProductFormState {
+  const ProductFormInitial();
+}
+
+final class ProductFormLoading extends ProductFormState {
+  const ProductFormLoading();
+}
+
+final class ProductFormSuccess extends ProductFormState {
+  final Product savedProduct;
+
+  const ProductFormSuccess(this.savedProduct);
+
+  @override
+  List<Object?> get props => [savedProduct];
+}
+
+final class ProductFormFailure extends ProductFormState {
+  final String message;
+
+  const ProductFormFailure(this.message);
+
+  @override
+  List<Object?> get props => [message];
+}
+
+sealed class DashboardState extends Equatable {
+  const DashboardState();
+
+  @override
+  List<Object?> get props => [];
+}
+
+final class DashboardInitial extends DashboardState {
+  const DashboardInitial();
+}
+
+sealed class SettingsState extends Equatable {
+  const SettingsState();
+
+  @override
+  List<Object?> get props => [];
+}
+
+final class SettingsInitial extends SettingsState {
+  const SettingsInitial();
+}
+
+extension ProductListStateFilters on ProductListState {
+  String get searchQuery => switch (this) {
+        ProductListLoading s => s.searchQuery,
+        ProductListSuccess s => s.searchQuery,
+        ProductListFailure s => s.searchQuery,
+        _ => '',
+      };
+  String? get categoryFilter => switch (this) {
+        ProductListLoading s => s.categoryFilter,
+        ProductListSuccess s => s.categoryFilter,
+        ProductListFailure s => s.categoryFilter,
+        _ => null,
+      };
+  bool get inStockOnly => switch (this) {
+        ProductListLoading s => s.inStockOnly,
+        ProductListSuccess s => s.inStockOnly,
+        ProductListFailure s => s.inStockOnly,
+        _ => false,
+      };
 }

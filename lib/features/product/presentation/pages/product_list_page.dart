@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/di/injection.dart';
 import '../../models/product.dart';
 import '../blocs/product_cubit.dart';
 import '../blocs/product_state.dart';
@@ -13,8 +14,8 @@ class ProductListPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => ProductCubit()..loadProducts(),
+    return BlocProvider<ProductListCubit>(
+      create: (_) => sl<ProductListCubit>()..loadProducts(),
       child: const _ProductListContent(),
     );
   }
@@ -25,13 +26,12 @@ class _ProductListContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final isWide = MediaQuery.sizeOf(context).width >= 900;
 
     return Scaffold(
       appBar: AppBarWithSearch(
         title: 'Products',
-        onSearchChanged: (q) => context.read<ProductCubit>().setSearchQuery(q),
+        onSearchChanged: (q) => context.read<ProductListCubit>().setSearchQuery(q),
         actions: [
           IconButton(
             icon: const Icon(Icons.add_rounded),
@@ -40,41 +40,43 @@ class _ProductListContent extends StatelessWidget {
           ),
         ],
       ),
-      body: BlocBuilder<ProductCubit, ProductListState>(
+      body: BlocBuilder<ProductListCubit, ProductListState>(
         builder: (context, state) {
-          if (state.status == ProductListStatus.initial ||
-              state.status == ProductListStatus.loading) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (state.status == ProductListStatus.failure) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+          switch (state) {
+            case ProductListInitial():
+            case ProductListLoading():
+              return const Center(child: CircularProgressIndicator());
+            case ProductListFailure(:final message):
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(message),
+                    const SizedBox(height: 16),
+                    FilledButton(
+                      onPressed: () =>
+                          context.read<ProductListCubit>().loadProducts(refresh: true),
+                      child: const Text('Retry'),
+                    ),
+                  ],
+                ),
+              );
+            case ProductListSuccess():
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text(state.errorMessage ?? 'Error loading products'),
-                  const SizedBox(height: 16),
-                  FilledButton(
-                    onPressed: () => context.read<ProductCubit>().loadProducts(refresh: true),
-                    child: const Text('Retry'),
+                  _FilterBar(state: state),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: isWide
+                          ? _ProductDataTable(state: state)
+                          : _ProductGridView(products: state.sortedProducts),
+                    ),
                   ),
                 ],
-              ),
-            );
+              );
           }
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _FilterBar(state: state),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: isWide
-                      ? _ProductDataTable(state: state)
-                      : _ProductGridView(products: state.sortedProducts),
-                ),
-              ),
-            ],
-          );
         },
       ),
     );
@@ -83,7 +85,7 @@ class _ProductListContent extends StatelessWidget {
   void _openAddModal(BuildContext context) {
     ProductFormModal.show(
       context,
-      onSaved: () => context.read<ProductCubit>().loadProducts(refresh: true),
+      onSaved: () => context.read<ProductListCubit>().loadProducts(refresh: true),
     );
   }
 }
@@ -111,15 +113,14 @@ class _FilterBar extends StatelessWidget {
               label: const Text('In stock only'),
               selected: state.inStockOnly,
               onSelected: (v) =>
-                  context.read<ProductCubit>().setInStockOnly(v),
+                  context.read<ProductListCubit>().setInStockOnly(v),
             ),
-
             if (state.searchQuery.isNotEmpty ||
                 state.categoryFilter != null ||
                 state.inStockOnly)
               TextButton.icon(
                 onPressed: () =>
-                    context.read<ProductCubit>().clearFilters(),
+                    context.read<ProductListCubit>().clearFilters(),
                 icon: const Icon(Icons.clear_rounded, size: 18),
                 label: const Text('Clear filters'),
               ),
@@ -137,7 +138,11 @@ class _CategoryFilter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final set = state.products
+    final products = switch (state) {
+      ProductListSuccess(:final products) => products,
+      _ => <Product>[],
+    };
+    final set = products
         .map((p) => p.category)
         .where((c) => c.isNotEmpty)
         .toSet();
@@ -160,7 +165,7 @@ class _CategoryFilter extends StatelessWidget {
           (c) => DropdownMenuItem(value: c, child: Text(c)),
         ),
       ],
-      onChanged: (v) => context.read<ProductCubit>().setCategoryFilter(v),
+      onChanged: (v) => context.read<ProductListCubit>().setCategoryFilter(v),
     );
   }
 }
@@ -168,7 +173,7 @@ class _CategoryFilter extends StatelessWidget {
 class _ProductDataTable extends StatelessWidget {
   const _ProductDataTable({required this.state});
 
-  final ProductListState state;
+  final ProductListSuccess state;
 
   @override
   Widget build(BuildContext context) {
@@ -196,19 +201,19 @@ class _ProductDataTable extends StatelessWidget {
             columns: [
               DataColumn(
                 label: const Text('ID'),
-                onSort: (_, __) => context.read<ProductCubit>().setSort(ProductSortColumn.id),
+                onSort: (_, __) => context.read<ProductListCubit>().setSort(ProductSortColumn.id),
               ),
               DataColumn(
                 label: const Text('Name'),
-                onSort: (_, __) => context.read<ProductCubit>().setSort(ProductSortColumn.name),
+                onSort: (_, __) => context.read<ProductListCubit>().setSort(ProductSortColumn.name),
               ),
               DataColumn(
                 label: const Text('Category'),
-                onSort: (_, __) => context.read<ProductCubit>().setSort(ProductSortColumn.category),
+                onSort: (_, __) => context.read<ProductListCubit>().setSort(ProductSortColumn.category),
               ),
               DataColumn(
                 label: const Text('Price'),
-                onSort: (_, __) => context.read<ProductCubit>().setSort(ProductSortColumn.price),
+                onSort: (_, __) => context.read<ProductListCubit>().setSort(ProductSortColumn.price),
               ),
               DataColumn(label: const Text('Stock status')),
               const DataColumn(label: Text('Actions')),
@@ -268,7 +273,7 @@ class _ProductDataTable extends StatelessWidget {
     ProductFormModal.show(
       context,
       product: p,
-      onSaved: () => context.read<ProductCubit>().loadProducts(refresh: true),
+      onSaved: () => context.read<ProductListCubit>().loadProducts(refresh: true),
     );
   }
 }
@@ -369,7 +374,7 @@ class _ProductGridView extends StatelessWidget {
                               context,
                               product: p,
                               onSaved: () => context
-                                  .read<ProductCubit>()
+                                  .read<ProductListCubit>()
                                   .loadProducts(refresh: true),
                             );
                           },

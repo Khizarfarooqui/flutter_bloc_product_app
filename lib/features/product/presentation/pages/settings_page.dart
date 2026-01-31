@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/di/injection.dart';
 import '../../../../core/theme/theme_mode_scope.dart';
+import '../blocs/settings_cubit.dart';
 import '../widgets/app_bar_with_search.dart';
 
 class SettingsPage extends StatelessWidget {
@@ -8,14 +11,17 @@ class SettingsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBarWithSearch(
-        title: 'Settings',
-        showSearch: false,
-      ),
-      body: const SingleChildScrollView(
-        padding: EdgeInsets.all(24),
-        child: _SettingsContent(),
+    return BlocProvider<SettingsCubit>(
+      create: (_) => sl<SettingsCubit>(),
+      child: Scaffold(
+        appBar: AppBarWithSearch(
+          title: 'Settings',
+          showSearch: false,
+        ),
+        body: const SingleChildScrollView(
+          padding: EdgeInsets.all(24),
+          child: _SettingsContent(),
+        ),
       ),
     );
   }

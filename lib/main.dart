@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 
+import 'core/di/injection.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_mode_scope.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await initInjector();
   runApp(const ProductDashboardApp());
 }
 
